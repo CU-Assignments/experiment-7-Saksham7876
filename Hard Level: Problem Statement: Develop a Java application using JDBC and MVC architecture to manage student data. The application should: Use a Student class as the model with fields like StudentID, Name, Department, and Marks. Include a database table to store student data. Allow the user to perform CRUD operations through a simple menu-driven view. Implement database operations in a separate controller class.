@@ -1,0 +1,146 @@
+import java.sql.*;
+import java.util.Scanner;
+
+// Model class
+class Student {
+    private int studentID;
+    private String name;
+    private String department;
+    private double marks;
+
+    public Student(int studentID, String name, String department, double marks) {
+        this.studentID = studentID;
+        this.name = name;
+        this.department = department;
+        this.marks = marks;
+    }
+
+    public int getStudentID() { return studentID; }
+    public String getName() { return name; }
+    public String getDepartment() { return department; }
+    public double getMarks() { return marks; }
+}
+
+// Controller class
+class StudentController {
+    private Connection conn;
+    
+    public StudentController(String url, String user, String password) throws SQLException, ClassNotFoundException {
+        Class.forName("com.mysql.cj.jdbc.Driver");
+        this.conn = DriverManager.getConnection(url, user, password);
+    }
+    
+    public void createStudent(Student student) throws SQLException {
+        String query = "INSERT INTO Student (StudentID, Name, Department, Marks) VALUES (?, ?, ?, ?)";
+        PreparedStatement pstmt = conn.prepareStatement(query);
+        pstmt.setInt(1, student.getStudentID());
+        pstmt.setString(2, student.getName());
+        pstmt.setString(3, student.getDepartment());
+        pstmt.setDouble(4, student.getMarks());
+        pstmt.executeUpdate();
+        pstmt.close();
+        System.out.println("Student added successfully.");
+    }
+    
+    public void readStudents() throws SQLException {
+        String query = "SELECT * FROM Student";
+        Statement stmt = conn.createStatement();
+        ResultSet rs = stmt.executeQuery(query);
+        System.out.println("StudentID | Name | Department | Marks");
+        while (rs.next()) {
+            System.out.println(rs.getInt("StudentID") + " | " + rs.getString("Name") + " | " + rs.getString("Department") + " | " + rs.getDouble("Marks"));
+        }
+        rs.close();
+        stmt.close();
+    }
+    
+    public void updateStudent(int id, double marks) throws SQLException {
+        String query = "UPDATE Student SET Marks = ? WHERE StudentID = ?";
+        PreparedStatement pstmt = conn.prepareStatement(query);
+        pstmt.setDouble(1, marks);
+        pstmt.setInt(2, id);
+        pstmt.executeUpdate();
+        pstmt.close();
+        System.out.println("Student updated successfully.");
+    }
+    
+    public void deleteStudent(int id) throws SQLException {
+        String query = "DELETE FROM Student WHERE StudentID = ?";
+        PreparedStatement pstmt = conn.prepareStatement(query);
+        pstmt.setInt(1, id);
+        pstmt.executeUpdate();
+        pstmt.close();
+        System.out.println("Student deleted successfully.");
+    }
+    
+    public void closeConnection() throws SQLException {
+        conn.close();
+    }
+}
+
+// View (Menu-driven interaction)
+public class StudentManagement {
+    private static final String URL = "jdbc:mysql://localhost:3306/your_database";
+    private static final String USER = "your_username";
+    private static final String PASSWORD = "your_password";
+
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+        try {
+            StudentController controller = new StudentController(URL, USER, PASSWORD);
+            
+            while (true) {
+                System.out.println("\nMENU");
+                System.out.println("1. Add Student");
+                System.out.println("2. View Students");
+                System.out.println("3. Update Student Marks");
+                System.out.println("4. Delete Student");
+                System.out.println("5. Exit");
+                System.out.print("Enter your choice: ");
+                int choice = scanner.nextInt();
+                scanner.nextLine(); 
+                
+                switch (choice) {
+                    case 1:
+                        System.out.print("Enter Student ID: ");
+                        int id = scanner.nextInt();
+                        scanner.nextLine();
+                        System.out.print("Enter Name: ");
+                        String name = scanner.nextLine();
+                        System.out.print("Enter Department: ");
+                        String department = scanner.nextLine();
+                        System.out.print("Enter Marks: ");
+                        double marks = scanner.nextDouble();
+                        scanner.nextLine();
+                        controller.createStudent(new Student(id, name, department, marks));
+                        break;
+                    case 2:
+                        controller.readStudents();
+                        break;
+                    case 3:
+                        System.out.print("Enter Student ID to update: ");
+                        int updateId = scanner.nextInt();
+                        System.out.print("Enter new Marks: ");
+                        double newMarks = scanner.nextDouble();
+                        controller.updateStudent(updateId, newMarks);
+                        break;
+                    case 4:
+                        System.out.print("Enter Student ID to delete: ");
+                        int deleteId = scanner.nextInt();
+                        controller.deleteStudent(deleteId);
+                        break;
+                    case 5:
+                        controller.closeConnection();
+                        System.out.println("Exiting...");
+                        return;
+                    default:
+                        System.out.println("Invalid choice. Try again.");
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            scanner.close();
+        }
+    }
+}
